@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     tools {
-        maven 'Maven 3.8.1' // Set your installed Maven version in Jenkins
+        maven 'Maven' // Set your installed Maven version in Jenkins
     }
 
     environment {
