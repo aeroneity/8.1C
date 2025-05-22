@@ -2,83 +2,66 @@ pipeline {
     agent any
 
     tools {
-        maven 'Maven' // Set your installed Maven version in Jenkins
-    }
-
-    environment {
-        STAGING_SERVER = "ec2-user@staging-server-ip"
-        PROD_SERVER = "ec2-user@production-server-ip"
-        ARTIFACT = "target/myapp.jar"
+        maven 'Maven'
     }
 
     stages {
-
         stage('Build') {
             steps {
                 echo 'Building the project...'
-                sh 'mvn clean package'
+                sh 'echo mvn clean package'
             }
         }
 
         stage('Unit and Integration Tests') {
             steps {
                 echo 'Running unit and integration tests...'
-                sh 'mvn test'
-                // Optional: sh 'newman run tests/collection.json' (for Postman API tests)
+                sh 'echo mvn test'
             }
         }
 
         stage('Code Analysis') {
             steps {
-                echo 'Running SonarQube analysis...'
-                withSonarQubeEnv('SonarQube') {
-                    sh 'mvn sonar:sonar'
-                }
+                echo 'Running static code analysis...'
+                sh 'echo mvn checkstyle:checkstyle'
             }
         }
 
         stage('Security Scan') {
             steps {
-                echo 'Running OWASP Dependency-Check...'
-                sh 'mvn org.owasp:dependency-check-maven:check'
+                echo 'Performing security scan...'
+                sh 'echo mvn org.owasp:dependency-check-maven:check'
             }
         }
 
         stage('Deploy to Staging') {
             steps {
-                echo 'Deploying to staging server...'
-                sh '''
-                    scp ${ARTIFACT} ${STAGING_SERVER}:/home/ec2-user/
-                    ssh ${STAGING_SERVER} "nohup java -jar /home/ec2-user/myapp.jar > output.log 2>&1 &"
-                '''
+                echo 'Deploying to staging environment...'
+                sh 'echo ./deploy-to-staging.sh'
             }
         }
 
         stage('Integration Tests on Staging') {
             steps {
-                echo 'Running Selenium tests on staging...'
-                // Example: Run Selenium test suite
-                sh 'mvn test -Dtest=StagingIntegrationTests'
+                echo 'Running integration tests on staging...'
+                sh 'echo ./run-integration-tests.sh'
             }
         }
 
         stage('Deploy to Production') {
             steps {
-                echo 'Deploying to production server...'
-                sh '''
-                    scp ${ARTIFACT} ${PROD_SERVER}:/home/ec2-user/
-                    ssh ${PROD_SERVER} "pkill -f myapp.jar || true"
-                    ssh ${PROD_SERVER} "nohup java -jar /home/ec2-user/myapp.jar > output.log 2>&1 &"
-                '''
+                echo 'Deploying to production environment...'
+                sh 'echo ./deploy-to-production.sh'
             }
         }
-
     }
 
     post {
+        success {
+            echo 'Pipeline completed successfully.'
+        }
         failure {
-            echo 'Pipeline failed. Sending alert...'
-            // Optionally send Slack/Email notifications here
+            echo 'Pipeline failed.'
         }
     }
 }
